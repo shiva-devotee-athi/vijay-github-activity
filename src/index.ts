@@ -2,7 +2,11 @@ import express, { Application } from "express";
 import http from "http";
 import { Server } from "socket.io";
 import { PORT, GITHUB_USERNAME } from "./config";
-import { fetchGitHubActivity } from "./services/githubService";
+import {
+  fetchGitHubActivity,
+  fetchGitHubProfile,
+  fetchGitHubRepos,
+} from "./services/githubService";
 
 const app: Application = express();
 const server = http.createServer(app);
@@ -23,16 +27,41 @@ io.on("connection", (socket) => {
   });
 });
 
+const getProfileData = async () => {
+   try {
+    const profile = await fetchGitHubProfile(GITHUB_USERNAME);
+    console.log(profile,'-=-=-')
+    io.emit("github-profiles", profile);
+  } catch (error) {
+    console.error("Error getting GitHub Profiles:", error);
+  }
+};
+
+const getRepositariesData = async () => {
+  try {
+    const repo = await fetchGitHubRepos(GITHUB_USERNAME);
+    io.emit("github-repositaries", repo);
+  } catch (error) {
+    console.error("Error getting GitHub Repositaries:", error);
+  }
+};
+
+
 const updateGitHubActivity = async () => {
   try {
     const activity = await fetchGitHubActivity(GITHUB_USERNAME);
-    io.emit("github activity", activity);
+    io.emit("github-activity", activity);
   } catch (error) {
     console.error("Error updating GitHub activity:", error);
   }
 };
 
-setInterval(updateGitHubActivity, 60000); // Fetch activity every 60 seconds
+getRepositariesData();
+getProfileData();
+updateGitHubActivity();
 
+// setInterval(updateGitHubActivity, 60000); // Fetch activity every 60 seconds
 
-server.listen(PORT, () => console.log(`Server running on port http://localhost:${PORT}`));
+server.listen(PORT, () =>
+  console.log(`Server running on port http://localhost:${PORT}`)
+);
